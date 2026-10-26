@@ -14,6 +14,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      { find: 'use-sync-external-store/shim', replacement: 'preact/compat' },
       { find: 'react-dom/client', replacement: 'preact/compat/client' },
       { find: 'react-dom', replacement: 'preact/compat' },
       { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' },

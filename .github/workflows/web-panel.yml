@@ -1,0 +1,51 @@
+name: Web panel checks
+
+on:
+  push:
+    branches: [master, main]
+    paths: ['web-panel/**', '.github/workflows/web-panel.yml']
+  pull_request:
+    paths: ['web-panel/**', '.github/workflows/web-panel.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web-panel
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web-panel/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm test
+      - run: pnpm run build
+      - run: node --check dist/bridge.cjs
+      - run: node --check dist/renderer-scripts/remote-popup-cleanup.js
+      - name: Check production artifacts
+        shell: bash
+        run: |
+          if grep -rEl 'mock-instance|Mock Adventure|Simulation|Debug session|mock=1|demo-session|vite\.svg|tailwind-merge|class-variance-authority|clsx' dist; then
+            echo 'Development-only content found in production artifacts.'
+            exit 1
+          fi
+          if find dist -name '*.map' -print -quit | grep -q .; then
+            echo 'Source maps must not be shipped.'
+            exit 1
+          fi
